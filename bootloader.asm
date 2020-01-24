@@ -9,7 +9,7 @@
 ; The headers are spec'd for a standard 1.44 floppy, but shouldn't be too
 ; difficult to adapt to a different medium.
 ; The path to the executable file (from the root of the TAR disk):
-%define FILE_TO_LOCATE "reneeverlyOS/KernelLoader.16bit" ; (no preceding slash)
+%define FILE_TO_LOCATE "reneeverlyOS/bootstrapper.16bit" ; (no preceding slash)
 ;******************************************************************************
 bits 16
    ; Figuring out a filename is a bit of a challenge, due to the following:
@@ -67,10 +67,11 @@ HDD_SECTOR_MAX equ 63
 HDD_HEAD_MAX equ 2
 ;******************************************************************************
 
-; Subroutine: start
-; Purpose: initializes the stack, data segments, string direction, device num.
-; Parameters: dl (device number)
-; Affects: ax, ss, sp, ds, es
+; Subroutine:   start
+; Purpose:      initializes the stack, data segments, string direction, device
+;               number.
+; Parameters:   dl (device number)
+; Affects:      ax, ss, sp, ds, es
 start:
    ; Define the stack.
    cli                  ; clear interrupts (enables stack movement)
@@ -90,10 +91,10 @@ start:
    ; Save the boot disk number (provided by the BIOS).
    mov byte [bootDeviceNumber], dl ; save device
 
-; Subroutine: loadSector2
-; Purpose: Loads the second sector of the bootloader
-; Parameters: (none)
-; Affects: ax, bx, cx, dx
+; Subroutine:   loadSector2
+; Purpose:      Loads the second sector of the bootloader
+; Parameters:   (none)
+; Affects:      ax, bx, cx, dx
 loadSector2:
    ; When the BIOS loads the bootloader, it only grabs the first sector.  As
    ; this bootloader is 2 sectors in length, we have to load the second sector
@@ -110,10 +111,10 @@ loadSector2:
    jc bootstrapFailure  ; If the carry flag is still set, the disk read failed.
    jmp sector2          ; Else, jump to the memory address of the second sector.
 
-; Subroutine: bootstrapFailure
-; Purpose: prints the failure message to the screen and halts.
-; Parameters: (none)
-; Affects: si, (calls teletypeString: ax, bh)
+; Subroutine:   bootstrapFailure
+; Purpose:      prints the failure message to the screen and halts.
+; Parameters:   (none)
+; Affects:      si, (calls teletypeString: ax, bh)
 bootstrapFailure:
    ; To indicate the failure, we'll display a message on the screen.
    mov si, .failMsg     ; Load the error message
@@ -148,11 +149,11 @@ deviceminor: dq "0000000", 0
 fileprefix: db 0
 ;******************************************************************************
 
-; Function: teletypeString
-; Purpose: Writes the string at si to the screen.
-; Parameters: si
-; Returns: (nothing)
-; Affects: ax, bh
+; Function:     teletypeString
+; Purpose:      Writes the string at si to the screen.
+; Parameters:   si
+; Returns:      (nothing)
+; Affects:      ax, bh
 teletypeString:
    ; We'll be using a BIOS interrupt function to write each character to the
    ; screen, using a while-do loop structure.
@@ -169,12 +170,12 @@ teletypeString:
 
 newlineString db 13, 10, 0
 
-; Function: octalStringToEDX
-; Purpose: Converts a tar value (stored as an octal string) to an unsigned
-;          integer in the register EDX
-; Parameters: si
-; Returns: edx
-; Affects: eax
+; Function:     octalStringToEDX
+; Purpose:      Converts a tar value (stored as an octal string) to an unsigned
+;               integer in the register EDX
+; Parameters:   si
+; Returns:      edx
+; Affects:      eax
 octalStringToEDX:
    ; TODO: this function isn't optimized yet
    ; size can be at most 8^7, or 2^21 -> 21 bits needed to store.
@@ -202,23 +203,23 @@ octalStringToEDX:
 .done:
    ret
 
-; Function: halt
-; Purpose: Issues the `hlt` command to the processor, which prevents it from
-;          performing any other operations until an interrupt.  Wrapping the
-;          instruction in a loop ensures there is no way for the hlt state to
-;          be escaped (via interrupt).
-; Parameters: (none)
-; Returns: (nothing)
-; Affects: (nothing)
+; Function:     halt
+; Purpose:      Issues the `hlt` command to the processor, which prevents it
+;               from performing any other operations until an interrupt.
+;               Wrapping the instruction in a loop ensures there is no way for
+;               the hlt state to be escaped (via interrupt).
+; Parameters:   (none)
+; Returns:      (nothing)
+; Affects:      (nothing)
 halt:
    hlt                  ; halt the processor
    jmp halt
 
-; Function: printDiskParameters
-; Purpose: Displays the CHS state of the searchDisk function.
-; Parameters: (none)
-; Returns: (nothing)
-; Affects: al, (calls teletypeString: ax, bh)
+; Function:     printDiskParameters
+; Purpose:      Displays the CHS state of the searchDisk function.
+; Parameters:   (none)
+; Returns:      (nothing)
+; Affects:      al, (calls teletypeString: ax, bh)
 printDiskParameters:
    mov al, byte [searchDisk.cylinder]
    add al, '0'
@@ -266,13 +267,14 @@ sector2:
    jmp searchDisk ; go to the searchDisk function
 .success: db "Successfully bootstrapped bootloader.", 13, 10, 0
 
-; Function: fixCHS
-; Purpose: Takes the Cylinder-Head-Sector combination and makes sure that it
-;          maps to a valid combination.  Example: [C: 0, H: 255, S: 255] isn't
-;          a valid CHS combo, so it would be adjusted to [C: 134, H: 1, S: 3].
-; Parameters: (none)
-; Returns: (nothing)
-; Affects: ax, cl
+; Function:     fixCHS
+; Purpose:      Takes the Cylinder-Head-Sector combination and makes sure that
+;               it maps to a valid combination.  Example: [C: 0, H: 255, S: 255]
+;               isn't a valid CHS combo, so it would be adjusted to
+;               [C: 134, H: 1, S: 3].
+; Parameters:   (none)
+; Returns:      (nothing)
+; Affects:      ax, cl
 fixCHS:
    ; Is the sector number greater than the maximum allowed sector?
    cmp byte [searchDisk.sector], FLOPPY_SECTOR_MAX
@@ -302,11 +304,12 @@ fixCHS:
 .noadjust:
    ret
 
-; Subroutine: searchDisk
-; Purpose: Scans through the disk, searching for a file with matching filename
-; Parameters: (none)
-; Returns: (nothing)
-; Affects: (si, di, ax, bx, cx, edx)
+; Subroutine:   searchDisk
+; Purpose:      Scans through the disk, searching for a file with matching
+;               filename
+; Parameters:   (none)
+; Returns:      (nothing)
+; Affects:      (si, di, ax, bx, cx, edx)
 searchDisk:
    call fixCHS
 ; load sector
@@ -374,10 +377,10 @@ searchDisk:
 .magicString: db "ustar", 0
 .errCount: dw 1024
 
-; Subroutine: loadFile
-; Purpose: From the current CHS, loads the entire file into memory.
-; Parameters: dl (file length in sectors)
-; Affects: ax, es, bx, cx, dx
+; Subroutine:   loadFile
+; Purpose:      From the current CHS, loads the entire file into memory.
+; Parameters:   dl (file length in sectors)
+; Affects:      ax, es, bx, cx, dx
 loadFile:
    ; Save the file length
    mov byte [.length], dl
@@ -408,16 +411,21 @@ loadFile:
    dec byte [.length]   ; remove 1 from the file length sector count
    jnz .loadSector      ; If file length isn't 0, there's still sectors to load
 .done:
+   ; pass the boot device number to the receiver
+   mov bl, byte [bootDeviceNumber]
+
+   ; jmp to the absolute memory address of the file loaded
    jmp 0x0e00:0x0000    ; Else, we can transfer execution to the memory address
+
 .fail:
    jmp invalidDiskParameters ; Read failure, we can't recover
 .alert: db "File Found!", 13, 10, 0
 .length:
 
-; Subroutine: invalidDiskParameters
-; Purpose: Displays the CHS parameters under the error condition.
-; Parameters: ah (disk error number from BIOS)
-; Affects: ax
+; Subroutine:   invalidDiskParameters
+; Purpose:      Displays the CHS parameters under the error condition.
+; Parameters:   ah (disk error number from BIOS)
+; Affects:      ax
 invalidDiskParameters:
    ; Conver the error number to an ascii string
    mov al, ah           ; duplicate ah to al
@@ -444,10 +452,10 @@ invalidDiskParameters:
 .eh: db "_"
 .el: db "_'", 13, 10, 0
 
-; Subroutine: invalidMagic
-; Purpose: Display end of disk / damaged sector / invalid magic error message.
-; Parameters: (none)
-; Affects si, (calls teletypeString: ax, bh)
+; Subroutine:   invalidMagic
+; Purpose:      Display end of disk / damaged sector / invalid magic error message.
+; Parameters:   (none)
+; Affects:      si, (calls teletypeString: ax, bh)
 invalidMagic:
    mov si, .invalidMagicString
    call teletypeString
